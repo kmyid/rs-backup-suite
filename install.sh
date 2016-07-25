@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 ##
 # Copyright (C) 2013-2015 Janek Bevendorff
 # Website: http://www.refining-linux.org/

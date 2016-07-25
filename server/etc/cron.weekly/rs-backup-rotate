@@ -1,2 +1,2 @@
-#!/bin/sh
+#!/bin/bash
 /usr/sbin/rs-rotate-cron weekly
