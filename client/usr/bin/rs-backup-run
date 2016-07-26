@@ -311,7 +311,7 @@ get_processed_passwd_file() {
     cat /etc/passwd | while read line; do
         uid=$(echo -n "${line}" | cut -d ":" -f 3)
         
-        if [ $uid -lt 1000 ]; then
+        if [ $uid -lt 500 ]; then
             continue
         fi
 
