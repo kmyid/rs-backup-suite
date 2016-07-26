@@ -346,6 +346,7 @@ perform_backup() {
     local rsync_opts="${RSYNC_OPTIONS}"
     local exit_code
     local tee_device="/dev/tty"
+    local log_dest		# log file for rsync
 
     if $_DRY_RUN; then
         rsync_opts+=" --dry-run"
@@ -364,6 +365,19 @@ perform_backup() {
         username=$(id -un)
     fi
 
+
+    # find appropriate log_dest for rsync
+    if [ "${_FORCED_LOG_FILE}" != "" ]; then
+	log_dest=${_FORCED_LOG_FILE}".rsync.log"
+    elif [ $(id -u ${username}) -eq 0 ]; then
+	log_dest=${LOG_FILE}".rsync.log"
+    elif [ -d "/home/${username}" ] && [ "${USER_LOG_FILE}" != "" ]; then
+	log_dest="/home/${username}/${USER_LOG_FILE}.rsync.log"
+    else
+	echo "WARNING: Couldn't determine valid log file location, using '/var/tmp'..." >&2
+	log_dest="/var/tmp/${LOG_FILE}"
+    fi
+    
     if [ "${_FORCED_INCLUSION_PATTERN_FILE}" != "" ]; then
         inclusion_pattern_file=${_FORCED_INCLUSION_PATTERN_FILE}
     fi
@@ -389,6 +403,7 @@ perform_backup() {
         --exclude=\"${USER_LOG_FILE}\" \
         --include-from=\"${inclusion_pattern_file}\" \
         --exclude=\"*\" \
+	--log-file=\"${log_dest}\" \
         ${rsync_opts} \
         / \
         \"${destination}\""
