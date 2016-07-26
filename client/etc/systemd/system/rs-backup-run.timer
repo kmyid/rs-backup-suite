@@ -1,8 +1,8 @@
 [Unit]
-Description=Run rs-backup-run every day
+Description=Run rs-backup-run every hour
 
 [Timer]
-OnCalendar=daily
+OnCalendar=hourly
 Persistent=true
 Unit=rs-backup-run.service
 
