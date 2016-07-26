@@ -401,6 +401,7 @@ perform_backup() {
         --exclude=\"${_RUNFILE}\" \
         --exclude=\"${LOG_FILE}\" \
         --exclude=\"${USER_LOG_FILE}\" \
+	--exclude=\"${log_dest}\" \
         --include-from=\"${inclusion_pattern_file}\" \
         --exclude=\"*\" \
 	--log-file=\"${log_dest}\" \
