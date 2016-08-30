@@ -368,11 +368,11 @@ perform_backup() {
 
     # find appropriate log_dest for rsync
     if [ "${_FORCED_LOG_FILE}" != "" ]; then
-	log_dest=${_FORCED_LOG_FILE}".rsync.log"
+	log_dest=${_FORCED_LOG_FILE::-4}"-rsync.log"
     elif [ $(id -u ${username}) -eq 0 ]; then
-	log_dest=${LOG_FILE}".rsync.log"
+	log_dest=${LOG_FILE::-4}"-rsync.log"
     elif [ -d "/home/${username}" ] && [ "${USER_LOG_FILE}" != "" ]; then
-	log_dest="/home/${username}/${USER_LOG_FILE}.rsync.log"
+	log_dest="/home/${username}/${USER_LOG_FILE::-4}-rsync.log"
     else
 	echo "WARNING: Couldn't determine valid log file location, using '/var/tmp'..." >&2
 	log_dest="/var/tmp/${LOG_FILE}"
