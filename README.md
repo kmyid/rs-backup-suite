@@ -50,26 +50,26 @@ The optional third parameter specifies the path to the SSH public key file which
 rs-backup-suite can chroot backup users into the backup home base directory. For this to work you need to create a few bind mounts. The install script already created the respective lines in your `/etc/fstab` for you. If you don't need any special configuration on your system, all you need to do is to uncomment everything between the `BEGIN` and `END` lines (do NOT change these two lines, though):
 
     # BEGIN: rs-backup-suite
-    #/bin               /bkp/bin                none    bind          0    0
-    #/bin               /bkp/bin                none    remount,ro    0    0
-    #/lib               /bkp/lib                none    bind          0    0
-    #/lib               /bkp/lib                none    remount,ro    0    0
-    #/dev               /bkp/dev                none    bind          0    0
-    #/dev               /bkp/dev                none    remount,ro    0    0
-    #/usr/bin           /bkp/usr/bin            none    bind          0    0
-    #/usr/bin           /bkp/usr/bin            none    remount,ro    0    0
-    #/usr/lib           /bkp/usr/lib            none    bind          0    0
-    #/usr/lib           /bkp/usr/lib            none    remount,ro    0    0
-    #/usr/share/perl5   /bkp/usr/share/perl5    none    bind          0    0
-    #/usr/share/perl5   /bkp/usr/share/perl5    none    remount,ro    0    0
+    #/bin               /bkp/bin                none    bind               0    0
+    #/bin               /bkp/bin                none    remount,ro,bind    0    0
+    #/lib               /bkp/lib                none    bind               0    0
+    #/lib               /bkp/lib                none    remount,ro,bind    0    0
+    #/dev               /bkp/dev                none    bind               0    0
+    #/dev               /bkp/dev                none    remount,ro,bind    0    0
+    #/usr/bin           /bkp/usr/bin            none    bind               0    0
+    #/usr/bin           /bkp/usr/bin            none    remount,ro,bind    0    0
+    #/usr/lib           /bkp/usr/lib            none    bind               0    0
+    #/usr/lib           /bkp/usr/lib            none    remount,ro,bind    0    0
+    #/usr/share/perl5   /bkp/usr/share/perl5    none    bind               0    0
+    #/usr/share/perl5   /bkp/usr/share/perl5    none    remount,ro,bind    0    0
     # END: rs-backup-suite
 
 The necessary mounts may differ from system to system. For instance, Ubuntu needs `/usr/share/perl` instead of `/usr/share/perl5`. Synology DSM doesn't need `/usr/share/*` at all, but requires `/opt/bin`, `/opt/lib` and `/opt/libexec`. But in most cases you don't need to worry about that since the install script tries to make the correct decisions for you.
 
 **NOTE:** If your 64-bit system doesn't have a `/lib` folder but only `/lib64` you may need to change the `/lib` line in your `/etc/fstab` as follows:
 
-    /lib64               /bkp/lib64                none    bind          0    0
-    /lib64               /bkp/lib64                none    remount,ro    0    0
+    /lib64               /bkp/lib64                none    bind               0    0
+    /lib64               /bkp/lib64                none    remount,ro,bind    0    0
 
 Don't forget to rename `/bkp/lib` to `/bkp/lib64`. The do the same with `/usr/lib` / `/usr/lib64`.
 
@@ -81,6 +81,8 @@ When you're done, add this to the end of your `/etc/ssh/sshd_config`:
 and restart OpenSSH. Your backup users are now chrooted into `/bkp`.
 
 **NOTE:** When using a chroot environment and you change anything in your user configuration (e.g. the username) you need to run `rs-update-passwd` or your user might not be able to log in anymore.
+
+**NOTE about logging:** Be aware that logging of backup success or failure on the server side will not work in a chroot environment since we mounted all our binds read-only. Additionally, certain files and libraries needed by the syslog facility may not be available. So if you want server-side logging, you cannot use chroot. Client-side logging will still work, of course.
 
 #### Changing the rotation options/backup levels
 To change how many increments of which level are kept, edit the file `/bkp/etc/rsnapshot.global.conf`. This is the global configuration file for rsnapshot which will be included in each user-specific configuration. There you can tweak the names and numbers for all backup levels.
@@ -185,26 +187,35 @@ To run the server component on Synology DSM, you need to install the following p
 * `openssh-sftp-server`
 * `util-linux-ng`
 
+In `/etc/ssh/sshd_config` make sure you replace whatever line contains the subsystem configuration for the sftp server with
+
+    Subsystem    sftp    /opt/libexec/sftp-server
+
+and restart the SSH server using the configuration utility from the web interace. If you are using the `synoservicectl` utility from the command line instead, make sure you are actually starting the correct SSH server from `/usr/sbin` and not from `/opt/sbin` (although that works as well, but would have a different configuration file).
+
 If you want to run your backups in a chroot environment please note that `/etc/fstab` will be reset to its defaults when rebooting the disk station. To avoid configuration loss, no mount directives are added to `/etc/fstab`  by the install script. Instead the following entries are added to `/etc/rc` (which won't be overwritten upon reboot):
 
     # BEGIN: rs-backup-suite
-    #mount -o bind       /bin                        /var/services/homes/bin
-    #mount -o remount,ro /var/services/homes/bin
-    #mount -o bind       /lib                        /var/services/homes/lib
-    #mount -o remount,ro /var/services/homes/lib
-    #mount -o bind       /dev                        /var/services/homes/dev
-    #mount -o remount,ro /var/services/homes/dev
-    #mount -o bind       /usr/bin                    /var/services/homes/usr/bin
-    #mount -o remount,ro /var/services/homes/usr/bin
-    #mount -o bind       /opt/bin                    /var/services/homes/opt/bin
-    #mount -o remount,ro /var/services/homes/opt/bin
-    #mount -o bind       /opt/lib                    /var/services/homes/opt/lib
-    #mount -o remount,ro /var/services/homes/opt/lib
-    #mount -o bind       /opt/libexec                /var/services/homes/opt/libexec
-    #mount -o remount,ro /var/services/homes/opt/libexec
+    #mount -o bind            /bin                        /var/services/homes/bin
+    #mount -o remount,ro,bind /var/services/homes/bin
+    #mount -o bind            /lib                        /var/services/homes/lib
+    #mount -o remount,ro,bind /var/services/homes/lib
+    #mount -o bind            /dev                        /var/services/homes/dev
+    #mount -o remount,ro,bind /var/services/homes/dev
+    #mount -o bind            /usr/bin                    /var/services/homes/usr/bin
+    #mount -o remount,ro,bind /var/services/homes/usr/bin
+    #mount -o bind            /opt/bin                    /var/services/homes/opt/bin
+    #mount -o remount,ro,bind /var/services/homes/opt/bin
+    #mount -o bind            /opt/lib                    /var/services/homes/opt/lib
+    #mount -o remount,ro,bind /var/services/homes/opt/lib
+    #mount -o bind            /opt/libexec                /var/services/homes/opt/libexec
+    #mount -o remount,ro,bind /var/services/homes/opt/libexec
     # END: rs-backup-suite
 
-To enable the mounts, uncomment everything between the `BEGIN` and `END` block. Afterwards either run these commands by hand once or reboot.
+To enable the mounts, uncomment everything between the `BEGIN` and `END` block. Afterwards either run these commands by hand once or reboot. Of course, don't forget to also set the correct chroot path in `/etc/ssh/sshd_config` and restart the SSH daemon:
+    
+    Match Group backup 
+        ChrootDirectory /var/services/homes/
 
 ### Cygwin
 The server component is incompatible with Cygwin for several reasons, but the client component works just fine. At the moment, though, there is no root mode for backing up all home directories at once. Desktop notifications are also unsupported.

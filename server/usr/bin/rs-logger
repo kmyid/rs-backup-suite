@@ -3,7 +3,7 @@
 # Copyright (C) 2013-2016 Janek Bevendorff
 # Website: http://www.refining-linux.org/
 # 
-# Print out version and copyright information for rs-backup.
+# Log to appropriate syslog facility.
 # 
 # The MIT License (MIT)
 #
@@ -26,29 +26,34 @@
 # THE SOFTWARE.
 ##
 
-_VERSION="0.3.0"
+if [ "$2" == "" ] ; then
+	echo "Usage: $(basename $0) <info|warn|err> <message>"
+	exit
+fi
 
-headline() {
-    if [ "$1" != "" ]; then
-        component="$1"
-    else
-        component="rs-backup-suite"
-    fi
-    echo -e "\e[1m${component}\e[0m version ${_VERSION}"
-}
+if [ "$1" != "info" ] && [ "$1" != "warn" ] && [ "$1" != "err" ]; then
+	echo "Invalid log priority '$1'. Choose from <info|warn|err>."
+	exit 1
+fi
 
-copyright() {
-    echo "Copyright (C) 2013-2016 Janek Bevendorff"
-    echo "Website: https://github.com/Manko10/rs-backup-suite"
-}
-
-if [ "$1" == "version" ]; then
-    echo -n "${_VERSION}"
-elif [ "$1" == "headline" ]; then
-    headline "$2"
-elif [ "$1" == "copyright" ]; then
-    copyright
+distribution=$(rs-detect-distribution)
+if [[ "Synology" == "${distribution}" ]]; then
+	# Use Synology's crappy synologd if we're on DSM
+	/usr/syno/bin/synologset1 sys $1 0x99000001 "[rs-backup-server] $2"
 else
-    headline
-    copyright
+	# Any other distribution
+	command -v logger > /dev/null
+	if [ $? -eq 0 ]; then
+		logger -p $1 -t rs-backup-server "$2"
+	else
+		# Log to STDOUT/STDERR if we have no syslog facility
+		prefix="$(date) [rs-backup-server]"
+		if [ "$1" == "err" ]; then
+			echo "$prefix ERROR: $2" >&2
+		elif [ "$1" == "warn" ]; then
+			echo "$prefix WARNING: $2" >&2
+		else
+			echo "$prefix INFO: $2"
+		fi
+	fi
 fi

@@ -1,6 +1,6 @@
 #!/bin/bash
 ##
-# Copyright (C) 2013-2015 Janek Bevendorff
+# Copyright (C) 2013-2016 Janek Bevendorff
 # Website: http://www.refining-linux.org/
 # 
 # Install script for installing server and client script files
@@ -143,7 +143,7 @@ if [[ $MODE == "install" ]]; then
 			$MKDIR "$BKP_DIR"/usr/share/perl5
 		fi
 
-		# Append fstab entries
+		# Apply distro-specific configurations
 		if [[ "$DISTRIBUTION" == "Synology" ]]; then
 				# Synology DSM restores default /etc/fstab upon reboot,
 				# so we better put mount commands in /etc/rc
@@ -155,6 +155,11 @@ if [[ $MODE == "install" ]]; then
 					echo "exit 0" >> $tmp_name
 					cat $tmp_name > /etc/rc
 					rm $tmp_name
+				fi
+
+				# Add our own syslog template
+				if ! grep -q "^# rs-backup-suite$" /usr/syno/synosdk/texts/enu/events; then
+					cat ./server/etc/events_synology >> /usr/syno/synosdk/texts/enu/events
 				fi
 		else
 			if ! grep -q "^# BEGIN: rs-backup-suite" /etc/fstab; then
@@ -175,8 +180,13 @@ if [[ $MODE == "install" ]]; then
 			$CP ./server/bkp/etc/* "$BKP_DIR"/etc/
 			# Correct command paths in rsnapshot config for Synology DSM
 			if [[ "$DISTRIBUTION" == "Synology" ]]; then
-				sed -i "s#/usr/bin/\(cp\|rm\|rsync\|logger\)\$#/opt/bin/\1#" "$BKP_DIR"/etc/rsnapshot.global.conf
+				sed -i "s#/usr/bin/\(rsync\|logger\)\$#/opt/bin/\1#" "$BKP_DIR"/etc/rsnapshot.global.conf
 			fi
+		else
+			# Update command paths if upgrading from earlier version
+			echo "Updating cp and rm command paths..."
+			sed -i "s#/opt/bin/cp\$#/usr/bin/cp#" "$BKP_DIR"/etc/rsnapshot.global.conf
+			sed -i "s#/opt/bin/rm\$#/usr/bin/rs-rm#" "$BKP_DIR"/etc/rsnapshot.global.conf
 		fi
 
 		# Create symlink for chroot

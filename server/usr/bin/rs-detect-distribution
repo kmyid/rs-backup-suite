@@ -1,6 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ##
-# Copyright (C) 2013-2014 Janek Bevendorff
+# Copyright (C) 2013-2016 Janek Bevendorff
 # Website: http://www.refining-linux.org/
 # 
 # Print out Linux distribution identification.
@@ -31,7 +31,7 @@ command -v lsb_release > /dev/null 2>&1
 
 if [ $? -eq 0 ]; then
 	lsb_release -is
-elif [ -e /etc/synoinfo.conf ] || [ -e /usr/lib/libsynoutils.so ]; then
+elif [ -e /etc/synoinfo.conf ] || [ -e /lib/$(ls /lib | grep libsynosdk | head -n1) ]; then
 	echo "Synology"
 else
 	echo "unknown"
