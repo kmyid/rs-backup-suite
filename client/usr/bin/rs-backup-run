@@ -335,7 +335,7 @@ desktop_notify() {
     if [[ "$user" != "" ]]; then
         dbus_pid=$(pgrep -u "$user" dbus-daemon | head -n1)
         environment=$(xargs --null < /proc/$dbus_pid/environ)
-        sudo -u "$user" $environment notify-send -i "$icon" -u "$urgency" "rs-backup: $2" "$3"
+        sudo -u "$user" "$environment" notify-send -i "$icon" -u "$urgency" "rs-backup: $2" "$3"
     fi
 }
 
