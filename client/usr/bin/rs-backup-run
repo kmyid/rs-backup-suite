@@ -142,10 +142,11 @@ write_log() {
     local use_syslog=false
     local logger="logger -t $(basename $0)"
 
-    command -v logger > /dev/null 2>&1
-    if [ $? -eq 0 ] && [ "${_FORCED_LOG_FILE}" == "" ]; then
-        use_syslog=true
-    fi
+    # Disable syslog... I don't like it
+    # command -v logger > /dev/null 2>&1
+    # if [ $? -eq 0 ] && [ "${_FORCED_LOG_FILE}" == "" ]; then
+    #     use_syslog=true
+    # fi
 
     if [ $1 -gt 0 ] && [ $1 -le $LOG_LEVEL ]; then
         if $use_syslog; then
