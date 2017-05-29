@@ -307,7 +307,7 @@ desktop_notify() {
         return
     fi
 
-    user=$(who | awk '/:0/ { print $1; exit; }')
+    user=$(who | awk '{ print $1; exit; }')
     if [ $(id -u) -ne 0 ] && [[ "$user" != "" ]] && [ $(id -u "$user") -ne $(id -u) ]; then
         # we're neither root nor the current user on display :0.0,
         # so don't show any notification
@@ -334,9 +334,17 @@ desktop_notify() {
     esac
 
     if [[ "$user" != "" ]]; then
-        dbus_pid=$(pgrep -u "$user" dbus-daemon | head -n1)
-        environment=$(xargs --null < /proc/$dbus_pid/environ)
-        sudo -u "$user" "$environment" notify-send -i "$icon" -u "$urgency" "rs-backup: $2" "$3"
+	# dbus_pid=$(pgrep -u "$user" dbus-daemon | head -n1)
+        # environment="$(xargs --null < /proc/$dbus_pid/environ) DISPLAY=:0"
+	uid=$(id -u $user)
+        environment="DBUS_SESSION_BUS_ADDRESS=\"unix:path=/run/user/${uid}/bus\" DISPLAY=:0"
+	write_log 3 "${environment}"
+	if [ $(id -u) -ne 0 ]; then
+	    # if not root simpy send message with environments
+	    $(environment) notify-send -i "$icon" -u "$urgency" "rs-backup: $2" "$3"
+	else
+	    su $user -c "${environment} notify-send -i '$icon' -u '$urgency' 'rs-backup: $2' '$3'"
+	fi
     fi
 }
 
